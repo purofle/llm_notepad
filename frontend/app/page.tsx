@@ -83,6 +83,12 @@ export default function Home() {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const cropperRef = useRef<Cropper | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
+  const imageMetricsRef = useRef({
+    naturalWidth: 0,
+    naturalHeight: 0,
+    renderedWidth: 0,
+    renderedHeight: 0,
+  });
 
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState('在此处上传图片');
@@ -117,6 +123,12 @@ export default function Home() {
     setBaseFileName(fileName.replace(/\.[^.]+$/, '') || 'photo');
     setImageLoaded(false);
     setUploadState(nextUploadState);
+    imageMetricsRef.current = {
+      naturalWidth: 0,
+      naturalHeight: 0,
+      renderedWidth: 0,
+      renderedHeight: 0,
+    };
     setMessage('调整裁剪区域后点击上传');
   }
 
@@ -171,9 +183,14 @@ export default function Home() {
 
   async function handleUpload() {
     const cropperSelection = cropperRef.current?.getCropperSelection();
-    const imageElement = imageRef.current;
+    const {
+      naturalWidth,
+      naturalHeight,
+      renderedWidth,
+      renderedHeight,
+    } = imageMetricsRef.current;
 
-    if (!cropperSelection || !imageElement) {
+    if (!cropperSelection || !naturalWidth || !naturalHeight) {
       setMessage('图片还没准备好，请重新拍照');
       return;
     }
@@ -182,12 +199,8 @@ export default function Home() {
     setMessage('正在生成裁剪图片并上传...');
 
     try {
-      const renderedWidth = imageElement.getBoundingClientRect().width;
-      const renderedHeight = imageElement.getBoundingClientRect().height;
-      const scaleX =
-        renderedWidth > 0 ? imageElement.naturalWidth / renderedWidth : 1;
-      const scaleY =
-        renderedHeight > 0 ? imageElement.naturalHeight / renderedHeight : 1;
+      const scaleX = renderedWidth > 0 ? naturalWidth / renderedWidth : 1;
+      const scaleY = renderedHeight > 0 ? naturalHeight / renderedHeight : 1;
       const exportWidth = Math.max(1, Math.round(cropperSelection.width * scaleX));
       const exportHeight = Math.max(
         1,
@@ -302,7 +315,17 @@ export default function Home() {
                 src={sourceImageUrl}
                 alt="待裁剪图片"
                 className="block max-w-full"
-                onLoad={() => setImageLoaded(true)}
+                onLoad={(event) => {
+                  const img = event.currentTarget;
+
+                  imageMetricsRef.current = {
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                    renderedWidth: img.getBoundingClientRect().width,
+                    renderedHeight: img.getBoundingClientRect().height,
+                  };
+                  setImageLoaded(true);
+                }}
                 onError={() => {
                   setImageLoaded(false);
                   setMessage('图片无法加载，请重新拍照或选图');

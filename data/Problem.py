@@ -7,3 +7,4 @@ class Problem(BaseModel):
     type: str
     subject: str
     tags: List[str]
+    answer: str
