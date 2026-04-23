@@ -42,8 +42,8 @@ async def upload_image(payload: UploadRequest) -> dict[str, Any]:
                         "content 为题目文本内容，数学符号使用 LaTeX"
                         "type 为题目类型，仅允许“主观题”或“客观题”;"
                         "tags 为题目知识点标签列表；"
-                        "subject 为题目所属学科；"
-                        "answer 为题目答案，依旧使用 LaTeX 表示，无需分点，只需要提供简单的带过程回答；"
+                        "subject 为题目所属学科，数学类学科应当写到细分学科，例如：线性代数、离散数学、高等数学，其他类只需要包括学科名。"
+                        "answer 为题目答案，依旧使用 LaTeX 表示，不应使用 markdown。无需分点，只需要提供简单的带过程回答；"
                 },
                 {
                     "role": "user",
