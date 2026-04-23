@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fff6f6;
+  --foreground: #402b2b;
+  --surface: #fffdfd;
+  --surface-soft: #f9ebeb;
+  --surface-strong: #f4d7d7;
+  --primary: #eea9a9;
+  --primary-deep: #d88686;
+  --primary-ink: #6e3f3f;
+  --line: #e8caca;
+  --muted: #8d6d6d;
   --font-sans:
     "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
     "Noto Sans SC", sans-serif;
@@ -16,13 +24,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 html,
@@ -59,5 +60,5 @@ body {
 .cropper-shell cropper-canvas {
   width: 100%;
   height: min(70vh, 32rem);
-  background: #f2ede3;
+  background: var(--surface-soft);
 }

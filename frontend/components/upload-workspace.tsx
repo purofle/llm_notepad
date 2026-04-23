@@ -86,11 +86,7 @@ async function fileToDataUrl(file: File) {
 }
 
 function normalizeProblem(problem: Problem | null | undefined) {
-  if (!problem) {
-    return null;
-  }
-
-  if (!Array.isArray(problem.tags)) {
+  if (!problem || !Array.isArray(problem.tags)) {
     return null;
   }
 
@@ -347,20 +343,25 @@ export function UploadWorkspace() {
   }
 
   return (
-    <AppShell
-      title="赛博错题本"
-      description="都什么时代了，还在写传统错题本？"
-    >
+    <AppShell title="赛博错题本" description="都什么时代了，还在写传统错题本？">
       <section className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
-        <div className="rounded-4xl border border-white/70 bg-white/85 p-5 shadow-[0_20px_60px_rgba(120,83,32,0.12)] md:p-6">
+        <div
+          className="rounded-4xl p-5 md:p-6"
+          style={{
+            border: '1px solid var(--line)',
+            backgroundColor: 'var(--surface)',
+            boxShadow: '0 20px 60px rgba(164, 108, 108, 0.14)',
+          }}
+        >
           <div className="flex flex-wrap gap-3">
             <label
               htmlFor="photo-input"
-              className={`relative inline-flex rounded-full px-5 py-3 text-sm font-semibold transition ${
-                isUploading
-                  ? 'cursor-not-allowed bg-amber-200 text-amber-950'
-                  : 'cursor-pointer bg-amber-300 text-black hover:bg-amber-400'
-              }`}
+              className="relative inline-flex rounded-full px-5 py-3 text-sm font-semibold transition-colors"
+              style={{
+                cursor: isUploading ? 'not-allowed' : 'pointer',
+                backgroundColor: isUploading ? 'var(--surface-strong)' : 'var(--primary)',
+                color: 'var(--primary-ink)',
+              }}
             >
               <span>{sourceImageUrl ? '重新拍照/选图' : '选择图片'}</span>
               <input
@@ -377,7 +378,17 @@ export function UploadWorkspace() {
 
             <button
               type="button"
-              className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+              className="rounded-full px-5 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed"
+              style={{
+                backgroundColor:
+                  isUploading || !sourceImageUrl || !imageLoaded
+                    ? 'var(--surface-strong)'
+                    : 'var(--primary-deep)',
+                color:
+                  isUploading || !sourceImageUrl || !imageLoaded
+                    ? 'var(--muted)'
+                    : '#fff8f8',
+              }}
               onClick={handleUpload}
               disabled={!sourceImageUrl || !imageLoaded || isUploading}
             >
@@ -385,18 +396,39 @@ export function UploadWorkspace() {
             </button>
           </div>
 
-          <p className="mt-4 text-sm leading-6 text-stone-600">{message}</p>
-          <p className="mt-2 text-xs leading-5 text-stone-500">
-            也可以直接按 <kbd className="rounded bg-stone-100 px-1.5 py-0.5">Ctrl</kbd>
+          <p className="mt-4 text-sm leading-6" style={{ color: 'var(--muted)' }}>
+            {message}
+          </p>
+          <p className="mt-2 text-xs leading-5" style={{ color: 'var(--muted)' }}>
+            也可以直接按{' '}
+            <kbd
+              className="rounded px-1.5 py-0.5"
+              style={{ backgroundColor: 'var(--surface-soft)' }}
+            >
+              Ctrl
+            </kbd>
             +
-            <kbd className="rounded bg-stone-100 px-1.5 py-0.5">V</kbd>
+            <kbd
+              className="rounded px-1.5 py-0.5"
+              style={{ backgroundColor: 'var(--surface-soft)' }}
+            >
+              V
+            </kbd>
             粘贴截图。
           </p>
 
           {sourceImageUrl ? (
             <section className="mt-6 space-y-3">
-              <h2 className="text-sm font-medium text-stone-700">裁剪区域</h2>
-              <div className="cropper-shell overflow-hidden rounded-3xl border border-stone-200 bg-stone-100 p-4">
+              <h2 className="text-sm font-medium" style={{ color: 'var(--primary-ink)' }}>
+                裁剪区域
+              </h2>
+              <div
+                className="cropper-shell overflow-hidden rounded-3xl p-4"
+                style={{
+                  border: '1px solid var(--line)',
+                  backgroundColor: 'var(--surface-soft)',
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   key={sourceImageUrl}
@@ -423,16 +455,31 @@ export function UploadWorkspace() {
               </div>
             </section>
           ) : (
-            <div className="mt-6 flex min-h-72 items-center justify-center rounded-3xl border border-dashed border-stone-300 bg-stone-50 text-center text-sm leading-6 text-stone-500">
+            <div
+              className="mt-6 flex min-h-72 items-center justify-center rounded-3xl border border-dashed text-center text-sm leading-6"
+              style={{
+                borderColor: 'var(--line)',
+                backgroundColor: 'var(--surface-soft)',
+                color: 'var(--muted)',
+              }}
+            >
               先选择一张错题图片，再调整裁剪区域。
             </div>
           )}
         </div>
 
-        <aside className="rounded-4xl border border-white/70 bg-stone-950 p-5 text-stone-50 shadow-[0_20px_60px_rgba(32,26,20,0.22)] md:p-6">
+        <aside
+          className="rounded-4xl p-5 md:p-6"
+          style={{
+            border: '1px solid var(--line)',
+            backgroundColor: 'var(--surface-soft)',
+            color: 'var(--foreground)',
+            boxShadow: '0 20px 60px rgba(164, 108, 108, 0.14)',
+          }}
+        >
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold tracking-[0.18em] text-amber-200 uppercase">
+              <p className="text-xs font-semibold tracking-[0.18em] uppercase">
                 Parsed Result
               </p>
               <h2 className="mt-2 text-2xl font-semibold">本次识别结果</h2>
@@ -440,8 +487,13 @@ export function UploadWorkspace() {
 
             {uploadState?.parsedProblem ? (
               <div className="space-y-4">
-                <div className="rounded-3xl bg-white/8 p-4">
-                  <p className="text-xs text-stone-300">题目内容</p>
+                <div
+                  className="rounded-3xl p-4"
+                  style={{ backgroundColor: 'var(--surface)' }}
+                >
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    题目内容
+                  </p>
                   <MathText
                     text={uploadState.parsedProblem.content}
                     className="mt-2 text-sm leading-7"
@@ -449,18 +501,33 @@ export function UploadWorkspace() {
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-3xl bg-white/8 p-4">
-                    <p className="text-xs text-stone-300">学科</p>
+                  <div
+                    className="rounded-3xl p-4"
+                    style={{ backgroundColor: 'var(--surface)' }}
+                  >
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      学科
+                    </p>
                     <p className="mt-2 text-sm">{uploadState.parsedProblem.subject}</p>
                   </div>
-                  <div className="rounded-3xl bg-white/8 p-4">
-                    <p className="text-xs text-stone-300">题型</p>
+                  <div
+                    className="rounded-3xl p-4"
+                    style={{ backgroundColor: 'var(--surface)' }}
+                  >
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      题型
+                    </p>
                     <p className="mt-2 text-sm">{uploadState.parsedProblem.type}</p>
                   </div>
                 </div>
 
-                <div className="rounded-3xl bg-white/8 p-4">
-                  <p className="text-xs text-stone-300">答案</p>
+                <div
+                  className="rounded-3xl p-4"
+                  style={{ backgroundColor: 'var(--surface)' }}
+                >
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    答案
+                  </p>
                   <MathText
                     text={uploadState.parsedProblem.answer}
                     className="mt-2 text-sm leading-7"
@@ -472,28 +539,44 @@ export function UploadWorkspace() {
                     uploadState.parsedProblem.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-amber-200 px-3 py-1 text-xs font-semibold text-amber-950"
+                        className="rounded-full px-3 py-1 text-xs font-semibold"
+                        style={{
+                          backgroundColor: 'var(--surface-strong)',
+                          color: 'var(--primary-ink)',
+                        }}
                       >
                         {tag}
                       </span>
                     ))
                   ) : (
-                    <span className="text-sm text-stone-400">暂无知识点标签</span>
+                    <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                      暂无知识点标签
+                    </span>
                   )}
                 </div>
 
                 {uploadState.responseId ? (
-                  <p className="text-xs text-stone-400">
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
                     Response ID: {uploadState.responseId}
                   </p>
                 ) : null}
               </div>
             ) : uploadState?.rawResult ? (
-              <div className="rounded-3xl bg-white/8 p-4 text-sm whitespace-pre-wrap text-stone-200">
+              <div
+                className="rounded-3xl p-4 text-sm whitespace-pre-wrap"
+                style={{ backgroundColor: 'var(--surface)' }}
+              >
                 {uploadState.rawResult}
               </div>
             ) : (
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-stone-400">
+              <div
+                className="rounded-3xl p-4 text-sm leading-6"
+                style={{
+                  border: '1px solid var(--line)',
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--muted)',
+                }}
+              >
                 还没识别内容。
               </div>
             )}
