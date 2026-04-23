@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-sans:
+    "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", sans-serif;
+  --font-mono:
+    "SFMono-Regular", "JetBrains Mono", "Fira Code", "Cascadia Mono",
+    monospace;
 }
 
 @theme inline {
@@ -28,7 +34,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
 }
 
 .cropper-shell {
@@ -43,5 +49,5 @@ body {
 .cropper-shell cropper-canvas {
   width: 100%;
   height: min(70vh, 32rem);
-  background: #f4f4f5;
+  background: #f2ede3;
 }
