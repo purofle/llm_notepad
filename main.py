@@ -1,14 +1,12 @@
 import os
 import re
-import json
-from typing import Any
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
-from pydantic import BaseModel
+from typing import Any
 
 from data.Problem import Problem
+from data.UploadRequest import UploadRequest
 
 DATA_URL_PATTERN = re.compile(
     r"^data:(image/(png|jpeg|jpg|webp|gif));base64,[A-Za-z0-9+/=\s]+$",
@@ -18,12 +16,6 @@ MODEL_NAME = os.getenv("OPENAI_MODEL_NAME", "kimi-k2.5")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.moonshot.cn/v1")
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
-tags = []
-
-class UploadRequest(BaseModel):
-    dataUrl: str
-
-
 app = FastAPI()
 
 app.add_middleware(
