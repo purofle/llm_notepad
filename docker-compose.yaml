@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: llm_notepad
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d llm_notepad"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+    working_dir: /app
+    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: llm_notepad
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.moonshot.cn/v1}
+      OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME:-kimi-k2.5}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - backend_venv:/app/.venv
+      - uv_cache:/root/.cache/uv
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: node:24-bookworm-slim
+    working_dir: /app/frontend
+    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm dev --hostname 0.0.0.0 --port 3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/frontend/node_modules
+      - pnpm_store:/root/.local/share/pnpm/store
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_venv:
+  uv_cache:
+  frontend_node_modules:
+  pnpm_store:
