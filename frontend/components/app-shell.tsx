@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/', label: '上传录入' },
   { href: '/problems', label: '错题列表' },
   { href: '/review', label: '翻卡记忆' },
+  { href: '/study', label: 'AI 学习' },
 ];
 
 export function AppShell({
@@ -61,7 +62,9 @@ export function AppShell({
 
             <nav className="flex flex-wrap gap-2">
               {NAV_ITEMS.map((item) => {
-                const active = pathname === item.href;
+                const active =
+                  pathname === item.href ||
+                  (item.href !== '/' && pathname.startsWith(`${item.href}/`));
 
                 return (
                   <Link

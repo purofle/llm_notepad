@@ -1,6 +1,7 @@
 'use client';
 
 import axios from 'axios';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type Cropper from 'cropperjs';
 
@@ -13,6 +14,7 @@ import type { Problem, UploadApiResponse } from '@/lib/types';
 type UploadState = {
   rawResult: string;
   responseId: string;
+  problemId: string;
   parsedProblem: Problem | null;
 };
 
@@ -290,6 +292,7 @@ export function UploadWorkspace() {
       const nextUploadState = {
         rawResult: typeof result.result === 'string' ? result.result : '',
         responseId: typeof result.response_id === 'string' ? result.response_id : '',
+        problemId: typeof result.problem_id === 'string' ? result.problem_id : '',
         parsedProblem,
       } satisfies UploadState;
 
@@ -538,6 +541,19 @@ export function UploadWorkspace() {
                   <p className="text-xs" style={{ color: 'var(--muted)' }}>
                     Response ID: {uploadState.responseId}
                   </p>
+                ) : null}
+
+                {uploadState.problemId ? (
+                  <Link
+                    href={`/study/${uploadState.problemId}`}
+                    className="inline-flex rounded-full px-5 py-3 text-sm font-semibold transition-colors"
+                    style={{
+                      backgroundColor: 'var(--primary-deep)',
+                      color: '#fff8f8',
+                    }}
+                  >
+                    学习
+                  </Link>
                 ) : null}
               </div>
             ) : uploadState?.rawResult ? (

@@ -38,3 +38,19 @@ export type UploadApiResponse = {
   detail?: string;
   error?: string;
 };
+
+export type StudyChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export type StudyChatRequest = {
+  problem_id: string;
+  messages: StudyChatMessage[];
+};
+
+export type StudyChatEvent = {
+  type: 'delta' | 'done' | 'error';
+  delta?: string;
+  error?: string | null;
+};

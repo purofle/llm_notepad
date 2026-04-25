@@ -14,6 +14,9 @@
   - 失败时返回 `400`（图片 data URL 格式不支持或无效）或 `502`（模型调用或解析失败）。
 - `GET /problems`：从数据库返回题目列表，按创建时间倒序排列。
   - Response Body：`ProblemRecord[]`
+- `GET /problems/{problem_id}`：从数据库返回指定题目，供学习页直达刷新时加载题目上下文。
+  - Response Body：`ProblemRecord`
+  - 题目不存在时返回 `404`。
 - `DELETE /problems/{problem_id}`：删除指定题目，并同步删除该题目的复习状态和复习记录。
   - Response Body：`DeleteProblemResponse`
   - 题目不存在时返回 `404`。
@@ -23,6 +26,12 @@
   - Request Body：`ReviewFeedbackRequest`
   - Response Body：`ReviewRecommendationResponse`
   - 题目不存在时返回 `404`；题目尚未到期时返回 `409`。
+- `POST /study/chat`：提交指定题目的 Study Mode 对话历史，后端注入题目上下文和教学 system prompt，并以 SSE 流式返回 AI 回复增量。
+  - Request Body：`StudyChatRequest`
+  - Response Body：`text/event-stream`，每条 `data` 为 `StudyChatEvent`
+  - `StudyChatRequest.messages` 仅允许 `user` 和 `assistant` 角色，前端不能传入 system prompt。
+  - `StudyChatEvent.type` 固定为 `delta`、`done`、`error`；`delta` 携带增量文本，`error` 携带错误信息。
+  - 题目不存在时返回 `404`；模型调用或流式解析失败时返回 `error` 事件。
 
 当添加后端接口时，**必须** 在 `test_main.http` 中添加相应的测试用例。
 后端接口的 Request Body 和 Response Body 的格式 **必须** 使用 Pydantic BaseModel 定义的模型，目前放置在 `data` 目录下。

@@ -1,6 +1,7 @@
 'use client';
 
 import axios from 'axios';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from './app-shell';
@@ -252,7 +253,17 @@ export function ProblemListPage() {
                     响应 ID：{problem.response_id}
                   </p>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Link
+                      href={`/study/${problem.id}`}
+                      className="rounded-full px-4 py-2 text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: 'var(--primary-deep)',
+                        color: '#fff8f8',
+                      }}
+                    >
+                      学习
+                    </Link>
                     <button
                       type="button"
                       className="rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed"

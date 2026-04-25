@@ -1,6 +1,7 @@
 # Test your FastAPI endpoints
 @problem_id = 00000000-0000-0000-0000-000000000000
 @review_problem_id = 00000000-0000-0000-0000-000000000000
+@study_problem_id = 00000000-0000-0000-0000-000000000000
 
 ###
 
@@ -14,6 +15,10 @@ Content-Type: application/json
 ###
 
 GET http://127.0.0.1:8000/problems
+
+###
+
+GET http://127.0.0.1:8000/problems/{{problem_id}}
 
 ###
 
@@ -31,4 +36,24 @@ Content-Type: application/json
 {
   "problem_id": "{{review_problem_id}}",
   "rating": "good"
+}
+
+###
+
+POST http://127.0.0.1:8000/study/chat
+Content-Type: application/json
+Accept: text/event-stream
+
+{
+  "problem_id": "{{study_problem_id}}",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "我会先帮你拆开这道题，但不会直接把完整答案摊开。你现在的年级/水平，或最想先搞懂哪一点？"
+    },
+    {
+      "role": "user",
+      "content": "我想先知道这题应该从哪里入手。"
+    }
+  ]
 }
