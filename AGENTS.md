@@ -5,17 +5,29 @@
 ## 前端
 前端位于 `/frontend` 目录下，使用 app router 进行页面管理，使用 Tailwind CSS 进行样式设计。
 
-前端编译测试时因为
-
 ## 后端
 后端目前实现了以下接口：
 
-- `POST /uploads`：接收前端上传的图片，使用 kimi-k2.5 模型识别题目并将结果写入数据库。
+- `POST /uploads`：接收前端上传的图片 data URL，使用 kimi-k2.5 模型识别题目并将结果写入数据库，同时为新题目创建复习状态。
+  - Request Body：`UploadRequest`
+  - Response Body：包含 `result`、`problem`、`response_id`、`problem_id`
+  - 失败时返回 `400`（图片 data URL 格式不支持或无效）或 `502`（模型调用或解析失败）。
 - `GET /problems`：从数据库返回题目列表，按创建时间倒序排列。
+  - Response Body：`ProblemRecord[]`
+- `DELETE /problems/{problem_id}`：删除指定题目，并同步删除该题目的复习状态和复习记录。
+  - Response Body：`DeleteProblemResponse`
+  - 题目不存在时返回 `404`。
+- `GET /review/recommendation`：返回当前最需要复习的题目推荐、待复习数量、题目总数以及下一次到期时间。
+  - Response Body：`ReviewRecommendationResponse`
+- `POST /review-records`：提交一次题目复习反馈，写入复习记录，更新间隔重复状态，并返回下一道复习推荐。
+  - Request Body：`ReviewFeedbackRequest`
+  - Response Body：`ReviewRecommendationResponse`
+  - 题目不存在时返回 `404`；题目尚未到期时返回 `409`。
 
-当添加后端接口时，**必须** 在test_main.http 中添加相应的测试用例。
-后端接口的 Request Body 和 Response Body 的格式 **必须** 使用使用 Pydantic BaseModel 定义的模型，目前放置在 `data` 目录下。
+当添加后端接口时，**必须** 在 `test_main.http` 中添加相应的测试用例。
+后端接口的 Request Body 和 Response Body 的格式 **必须** 使用 Pydantic BaseModel 定义的模型，目前放置在 `data` 目录下。
 API **应该** 使用 Restful 风格设计，尽可能使用标准的 HTTP 方法和状态码。
+每次添加修改接口时，**必须** 更新 AGENTS.md 中的接口文档，确保文档与代码保持一致。
 
 ## 前后端联调
 前端错题列表页应优先从后端 `/problems` 接口获取数据，不应再把它作为仅保存在浏览器本地的数据源。
