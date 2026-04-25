@@ -5,8 +5,7 @@ import type Cropper from 'cropperjs';
 
 import { AppShell } from './app-shell';
 import { MathText } from './math-text';
-import { saveProblem } from '@/lib/problem-store';
-import type { Problem, SavedProblem, UploadApiResponse } from '@/lib/types';
+import type { Problem, UploadApiResponse } from '@/lib/types';
 
 type UploadState = {
   rawResult: string;
@@ -97,21 +96,6 @@ function normalizeProblem(problem: Problem | null | undefined) {
     answer: problem.answer.trim(),
     tags: problem.tags.map((tag) => String(tag).trim()).filter(Boolean),
   } satisfies Problem;
-}
-
-function buildSavedProblem(uploadState: UploadState, previewImageUrl: string | null) {
-  if (!uploadState.parsedProblem) {
-    return null;
-  }
-
-  return {
-    ...uploadState.parsedProblem,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    responseId: uploadState.responseId,
-    rawResult: uploadState.rawResult,
-    previewImageUrl,
-  } satisfies SavedProblem;
 }
 
 export function UploadWorkspace() {
@@ -323,15 +307,9 @@ export function UploadWorkspace() {
         parsedProblem,
       } satisfies UploadState;
 
-      const savedProblem = buildSavedProblem(nextUploadState, dataUrl);
-
-      if (savedProblem) {
-        saveProblem(savedProblem);
-      }
-
       resetSource(URL.createObjectURL(file), file.name, nextUploadState);
       setMessage(
-        savedProblem
+        parsedProblem
           ? '图片已识别并加入错题列表'
           : '图片已发送到后端，但返回结果缺少可用的 problem 字段',
       );

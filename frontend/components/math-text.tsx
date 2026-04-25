@@ -58,7 +58,7 @@ export function MathText({
   return (
     <div className={className}>
       {lines.map((line, lineIndex) => (
-        <div key={`${lineIndex}-${line}`} className="min-h-[1.75rem]">
+        <div key={`${lineIndex}-${line}`} className="min-h-7">
           {parseLine(line).map((segment, segmentIndex) => {
             const key = `${lineIndex}-${segmentIndex}`;
 

@@ -4,11 +4,17 @@ import { useMemo, useState } from 'react';
 
 import { AppShell } from './app-shell';
 import { MathText } from './math-text';
-import { deleteProblem, listSavedProblems } from '@/lib/problem-store';
-import type { SavedProblem } from '@/lib/types';
+import type { ProblemRecordApi } from '@/lib/types';
 
-export function ProblemListPage() {
-  const [problems, setProblems] = useState<SavedProblem[]>(() => listSavedProblems());
+type ProblemListPageProps = {
+  problems: ProblemRecordApi[];
+  errorMessage?: string;
+};
+
+export function ProblemListPage({
+  problems,
+  errorMessage = '',
+}: ProblemListPageProps) {
   const [subjectFilter, setSubjectFilter] = useState('全部');
 
   const subjects = useMemo(() => {
@@ -57,7 +63,18 @@ export function ProblemListPage() {
           </p>
         </div>
 
-        {filteredProblems.length > 0 ? (
+        {errorMessage ? (
+          <div
+            className="mt-6 rounded-[1.75rem] border border-dashed p-10 text-center text-sm leading-7"
+            style={{
+              borderColor: 'var(--line)',
+              backgroundColor: 'var(--surface-soft)',
+              color: 'var(--muted)',
+            }}
+          >
+            {errorMessage}
+          </div>
+        ) : filteredProblems.length > 0 ? (
           <div className="mt-6 grid gap-4">
             {filteredProblems.map((problem) => (
               <article
@@ -89,7 +106,7 @@ export function ProblemListPage() {
                       {problem.type || '未知题型'}
                     </span>
                     <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                      {new Date(problem.createdAt).toLocaleString('zh-CN')}
+                      {new Date(problem.created_at).toLocaleString('zh-CN')}
                     </span>
                   </div>
 
@@ -140,29 +157,9 @@ export function ProblemListPage() {
                     <MathText text={problem.answer} className="mt-2 text-sm leading-7" />
                   </div>
 
-                  {problem.previewImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={problem.previewImageUrl}
-                      alt="错题裁剪图"
-                      className="max-h-56 w-full rounded-2xl object-contain"
-                      style={{ border: '1px solid var(--line)' }}
-                    />
-                  ) : null}
-
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      className="rounded-full px-4 py-2 text-sm font-medium transition-colors"
-                      style={{
-                        backgroundColor: 'var(--surface-strong)',
-                        color: 'var(--primary-ink)',
-                      }}
-                      onClick={() => setProblems(deleteProblem(problem.id))}
-                    >
-                      删除
-                    </button>
-                  </div>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    响应 ID：{problem.response_id}
+                  </p>
                 </div>
               </article>
             ))}
