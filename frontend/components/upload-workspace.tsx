@@ -1,10 +1,13 @@
 'use client';
 
+import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import type Cropper from 'cropperjs';
 
 import { AppShell } from './app-shell';
 import { MathText } from './math-text';
+import { invalidateProblemsCache } from '@/lib/problems-api';
+import { invalidateReviewRecommendationCache } from '@/lib/review-api';
 import type { Problem, UploadApiResponse } from '@/lib/types';
 
 type UploadState = {
@@ -271,34 +274,17 @@ export function UploadWorkspace() {
         'image/png',
       );
       const dataUrl = await fileToDataUrl(file);
-
-      const response = await fetch(UPLOAD_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data: result } = await axios.post<UploadApiResponse>(
+        UPLOAD_ENDPOINT,
+        {
           dataUrl,
-        }),
-      });
-
-      let result: UploadApiResponse | null = null;
-      const contentType = response.headers.get('content-type') ?? '';
-
-      if (contentType.includes('application/json')) {
-        result = (await response.json()) as UploadApiResponse;
-      }
-
-      if (!response.ok || result == null) {
-        const errorMessage =
-          typeof result?.detail === 'string'
-            ? result.detail
-            : typeof result?.error === 'string'
-              ? result.error
-              : `上传失败 (${response.status})`;
-
-        throw new Error(errorMessage);
-      }
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
 
       const parsedProblem = normalizeProblem(result.problem);
       const nextUploadState = {
@@ -307,6 +293,8 @@ export function UploadWorkspace() {
         parsedProblem,
       } satisfies UploadState;
 
+      invalidateReviewRecommendationCache();
+      invalidateProblemsCache();
       resetSource(URL.createObjectURL(file), file.name, nextUploadState);
       setMessage(
         parsedProblem
@@ -314,6 +302,19 @@ export function UploadWorkspace() {
           : '图片已发送到后端，但返回结果缺少可用的 problem 字段',
       );
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const detail =
+          typeof error.response?.data?.detail === 'string'
+            ? error.response.data.detail
+            : typeof error.response?.data?.error === 'string'
+              ? error.response.data.error
+              : '';
+        setMessage(
+          detail || (error.response?.status ? `上传失败 (${error.response.status})` : '上传失败'),
+        );
+        return;
+      }
+
       setMessage(error instanceof Error ? error.message : '上传失败');
     } finally {
       setIsUploading(false);

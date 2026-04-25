@@ -12,6 +12,24 @@ export type ProblemRecordApi = Problem & {
   created_at: string;
 };
 
+export type ReviewRating = 'forgot' | 'hard' | 'good' | 'easy';
+
+export type ReviewRecommendationProblem = ProblemRecordApi & {
+  due_at: string;
+};
+
+export type ReviewRecommendationResponse = {
+  problem: ReviewRecommendationProblem | null;
+  due_count: number;
+  total_count: number;
+  next_due_at: string | null;
+};
+
+export type ReviewFeedbackRequest = {
+  problem_id: string;
+  rating: ReviewRating;
+};
+
 export type UploadApiResponse = {
   result?: string;
   problem?: Problem;
@@ -19,12 +37,4 @@ export type UploadApiResponse = {
   response_id?: string;
   detail?: string;
   error?: string;
-};
-
-export type SavedProblem = Problem & {
-  id: string;
-  createdAt: string;
-  responseId: string;
-  rawResult: string;
-  previewImageUrl: string | null;
 };
