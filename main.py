@@ -2,7 +2,9 @@ import os
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from uuid import UUID
 
 from sqlalchemy import desc
 from fastapi import Depends, FastAPI, HTTPException
@@ -10,8 +12,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from sqlmodel import Session, select
 
+from data.DeleteProblemResponse import DeleteProblemResponse
 from data.Problem import Problem
 from data.ProblemRecord import ProblemRecord
+from data.ProblemReviewRecord import ProblemReviewRecord
+from data.ProblemReviewState import ProblemReviewState
+from data.ReviewFeedbackRequest import ReviewFeedbackRequest
+from data.ReviewRating import ReviewRating
+from data.ReviewRecommendationResponse import (
+    ReviewRecommendationProblem,
+    ReviewRecommendationResponse,
+)
 from data.UploadRequest import UploadRequest
 from db import create_db_and_tables, get_session
 
@@ -67,6 +78,122 @@ def build_system_prompt(session: Session) -> str:
     )
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+
+    return dt.astimezone(timezone.utc)
+
+
+def ensure_review_states(session: Session) -> tuple[list[ProblemRecord], dict[UUID, ProblemReviewState]]:
+    problems = list(session.exec(select(ProblemRecord).order_by(ProblemRecord.created_at)).all())
+    states = list(session.exec(select(ProblemReviewState)).all())
+    state_by_problem_id = {state.problem_id: state for state in states}
+
+    missing_states = [
+        ProblemReviewState(problem_id=problem.id, due_at=as_utc(problem.created_at))
+        for problem in problems
+        if problem.id not in state_by_problem_id
+    ]
+
+    if missing_states:
+        session.add_all(missing_states)
+        session.commit()
+        states = list(session.exec(select(ProblemReviewState)).all())
+        state_by_problem_id = {state.problem_id: state for state in states}
+
+    return problems, state_by_problem_id
+
+
+def build_recommendation_response(session: Session) -> ReviewRecommendationResponse:
+    problems, state_by_problem_id = ensure_review_states(session)
+    now = utc_now()
+    due_items: list[tuple[ProblemRecord, ProblemReviewState]] = []
+    future_due_ats: list[datetime] = []
+
+    for problem in problems:
+        state = state_by_problem_id[problem.id]
+        due_at = as_utc(state.due_at)
+
+        if due_at <= now:
+            due_items.append((problem, state))
+        else:
+            future_due_ats.append(due_at)
+
+    due_items.sort(key=lambda item: (as_utc(item[1].due_at), as_utc(item[0].created_at)))
+
+    if due_items:
+        problem, state = due_items[0]
+        recommendation_problem = ReviewRecommendationProblem(
+            id=str(problem.id),
+            content=problem.content,
+            type=problem.type,
+            subject=problem.subject,
+            tags=problem.tags,
+            answer=problem.answer,
+            response_id=problem.response_id,
+            created_at=as_utc(problem.created_at),
+            due_at=as_utc(state.due_at),
+        )
+        next_due_at = as_utc(state.due_at)
+    else:
+        recommendation_problem = None
+        next_due_at = min(future_due_ats) if future_due_ats else None
+
+    return ReviewRecommendationResponse(
+        problem=recommendation_problem,
+        due_count=len(due_items),
+        total_count=len(problems),
+        next_due_at=next_due_at,
+    )
+
+
+def apply_review_feedback(
+    state: ProblemReviewState,
+    rating: ReviewRating,
+    now: datetime,
+) -> tuple[float, int, datetime]:
+    ease_factor = state.ease_factor
+    repetition = state.repetition
+    interval_days = state.interval_days
+
+    if rating == ReviewRating.FORGOT:
+        return max(1.3, ease_factor - 0.2), 0, now + timedelta(minutes=10)
+
+    if rating == ReviewRating.HARD:
+        next_repetition = repetition + 1
+        next_interval_days = 1 if repetition == 0 else max(1, round(interval_days * 1.2))
+        return (
+            max(1.3, ease_factor - 0.15),
+            next_repetition,
+            now + timedelta(days=next_interval_days),
+        )
+
+    if rating == ReviewRating.GOOD:
+        next_repetition = repetition + 1
+        if next_repetition == 1:
+            next_interval_days = 1
+        elif next_repetition == 2:
+            next_interval_days = 6
+        else:
+            next_interval_days = max(1, round(interval_days * ease_factor))
+        return ease_factor, next_repetition, now + timedelta(days=next_interval_days)
+
+    next_repetition = repetition + 1
+    next_ease_factor = ease_factor + 0.15
+    if next_repetition == 1:
+        next_interval_days = 4
+    elif next_repetition == 2:
+        next_interval_days = 8
+    else:
+        next_interval_days = max(1, round(interval_days * next_ease_factor * 1.3))
+    return next_ease_factor, next_repetition, now + timedelta(days=next_interval_days)
+
+
 @app.post("/uploads")
 async def upload_image(
     payload: UploadRequest,
@@ -111,6 +238,13 @@ async def upload_image(
         response_id=response.id,
     )
     session.add(saved_problem)
+    session.flush()
+    session.add(
+        ProblemReviewState(
+            problem_id=saved_problem.id,
+            due_at=as_utc(saved_problem.created_at),
+        )
+    )
     session.commit()
     session.refresh(saved_problem)
 
@@ -127,3 +261,97 @@ async def upload_image(
 def list_problems(session: SessionDep) -> list[ProblemRecord]:
     statement = select(ProblemRecord).order_by(desc(ProblemRecord.created_at))
     return list(session.exec(statement).all())
+
+
+@app.get("/review/recommendation", response_model=ReviewRecommendationResponse)
+def get_review_recommendation(session: SessionDep) -> ReviewRecommendationResponse:
+    return build_recommendation_response(session)
+
+
+@app.post("/review-records", response_model=ReviewRecommendationResponse)
+def create_review_record(
+    payload: ReviewFeedbackRequest,
+    session: SessionDep,
+) -> ReviewRecommendationResponse:
+    problem = session.get(ProblemRecord, payload.problem_id)
+
+    if problem is None:
+        raise HTTPException(status_code=404, detail="Problem not found")
+
+    ensure_review_states(session)
+    state = session.get(ProblemReviewState, payload.problem_id)
+
+    if state is None:
+        raise HTTPException(status_code=500, detail="Review state missing")
+
+    now = utc_now()
+    state_due_at = as_utc(state.due_at)
+    if state_due_at > now:
+        raise HTTPException(status_code=409, detail="Problem is not due yet")
+
+    previous_ease_factor = state.ease_factor
+    previous_interval_days = state.interval_days
+    previous_due_at = state_due_at
+
+    next_ease_factor, next_repetition, next_due_at = apply_review_feedback(
+        state,
+        payload.rating,
+        now,
+    )
+    next_interval_days = max(0, (next_due_at - now).days)
+
+    if payload.rating == ReviewRating.FORGOT:
+        state.lapse_count += 1
+
+    state.ease_factor = next_ease_factor
+    state.repetition = next_repetition
+    state.interval_days = next_interval_days
+    state.due_at = next_due_at
+    state.last_reviewed_at = now
+    state.updated_at = now
+
+    session.add(
+        ProblemReviewRecord(
+            problem_id=payload.problem_id,
+            rating=payload.rating,
+            reviewed_at=now,
+            ease_factor_before=previous_ease_factor,
+            ease_factor_after=state.ease_factor,
+            interval_days_before=previous_interval_days,
+            interval_days_after=state.interval_days,
+            due_at_before=previous_due_at,
+            due_at_after=state.due_at,
+        )
+    )
+    session.add(state)
+    session.commit()
+
+    return build_recommendation_response(session)
+
+
+@app.delete("/problems/{problem_id}", response_model=DeleteProblemResponse)
+def delete_problem(problem_id: UUID, session: SessionDep) -> DeleteProblemResponse:
+    problem = session.get(ProblemRecord, problem_id)
+
+    if problem is None:
+        raise HTTPException(status_code=404, detail="Problem not found")
+
+    review_state = session.get(ProblemReviewState, problem_id)
+    if review_state is not None:
+        session.delete(review_state)
+
+    review_records = list(
+        session.exec(
+            select(ProblemReviewRecord).where(ProblemReviewRecord.problem_id == problem_id)
+        ).all()
+    )
+    for review_record in review_records:
+        session.delete(review_record)
+
+    session.delete(problem)
+    session.commit()
+
+    return DeleteProblemResponse(
+        problem_id=str(problem_id),
+        message="Problem deleted",
+    )

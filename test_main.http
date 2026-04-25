@@ -1,4 +1,7 @@
 # Test your FastAPI endpoints
+@problem_id = 00000000-0000-0000-0000-000000000000
+@review_problem_id = 00000000-0000-0000-0000-000000000000
+
 ###
 
 POST http://127.0.0.1:8000/uploads
@@ -11,3 +14,21 @@ Content-Type: application/json
 ###
 
 GET http://127.0.0.1:8000/problems
+
+###
+
+DELETE http://127.0.0.1:8000/problems/{{problem_id}}
+
+###
+
+GET http://127.0.0.1:8000/review/recommendation
+
+###
+
+POST http://127.0.0.1:8000/review-records
+Content-Type: application/json
+
+{
+  "problem_id": "{{review_problem_id}}",
+  "rating": "good"
+}
